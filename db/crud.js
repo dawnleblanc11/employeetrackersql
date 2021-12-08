@@ -3,14 +3,14 @@ class DB{
     constructor(connection) {
         this.connection = connection;
     }
-    getAlldepartments() {
+    viewAlldepartments() {
         return this.connection.promise().query('SELECT * FROM departments')
     }
-    getAllroles() {
-        return this.connection.promise().query('SELECT * FROM roles')
+    viewAllroles() {
+        return this.connection.promise().query('SELECT * FROM departments JOIN roles ON roles.role_department_id = departments.department_id;')
     }
-    getAllemployees() {
-        return this.connection.promise().query('SELECT * FROM employees')
+    viewAllemployees() {
+        return this.connection.promise().query('SELECT last_name, first_name, role_title, manager_id FROM employees JOIN roles ON employees.employee_role_id=roles.role_department_id OR employees.employee_id = employees.manager_id;')
     }
 };
 

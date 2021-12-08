@@ -3,15 +3,15 @@ const DB = require('./db/crud');
 //const apiRoutes = require('./routes/apiRoutes');
 const { printTable } = require('console-table-printer')
 
-DB.getAlldepartments().then(([rows])=>{
+DB.viewAlldepartments().then(([rows])=>{
     let departments = rows;
     printTable(departments);
 });
-DB.getAllroles().then(([rows])=>{
+DB.viewAllroles().then(([rows])=>{
     let roles = rows;
     printTable(roles);
 });
-DB.getAllemployees().then(([rows])=>{
+DB.viewAllemployees().then(([rows])=>{
     let employees = rows;
     printTable(employees);
 });
