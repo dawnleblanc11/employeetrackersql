@@ -10,7 +10,10 @@ class DB{
         return this.connection.promise().query('SELECT * FROM departments JOIN roles ON roles.role_department_id = departments.department_id;')
     }
     viewAllemployees() {
-        return this.connection.promise().query('SELECT last_name, first_name, role_title, manager_id FROM employees JOIN roles ON employees.employee_role_id=roles.role_department_id OR employees.employee_id = employees.manager_id;')
+        return this.connection.promise().query(`SELECT e.first_name, e.last_name, r.role_title,
+         CONCAT(mgr.first_name, ' ',mgr.last_name) AS Manager FROM employees AS e 
+        JOIN roles AS r ON e.employee_role_id = r.roles_id
+        LEFT JOIN employees AS mgr ON e.manager_id = mgr.employee_id`)
     }
 };
 
