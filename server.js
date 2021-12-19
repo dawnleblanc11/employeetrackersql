@@ -10,6 +10,7 @@ const connection = require('./db/connections');
 // needed to use PrintTable since other function did not work
 const { printTable } = require('console-table-printer');
 const { response } = require("express");
+var colors = require("colors");
 
 let deptArr = [];
 let roleArr = [];
@@ -167,7 +168,7 @@ function viewAlldepartments() {
     connection.query('SELECT * FROM departments', 
     function(err, res) {
       if (err) throw err
-      console.log("View of All Departments Completed");
+      console.log("View of All Departments".green);
       printTable(res);
   })
 }
@@ -178,7 +179,7 @@ function viewAllroles() {
     ORDER BY roles.role_title`, 
     function(err, res) {
       if (err) throw err
-      console.log("View of all Rows Completed");
+      console.log("View of all Roles".green);
       printTable(res);
       
   })
@@ -194,7 +195,7 @@ function viewAllemployees() {
    ORDER BY e.last_name`, 
     function(err, res) {
       if (err) throw err
-      console.log("View All Employees By Last Name Completed");
+      console.log("View All Employees By Last Name".green);
       printTable(res);
       
   })
@@ -210,7 +211,7 @@ function viewAllemployeesbyDepartment() {
    ORDER BY d.department_name`, 
     function(err, res) {
       if (err) throw err
-      console.log("View All Employees By Department Completed");
+      console.log("View All Employees By Department".green);
       printTable(res);
       
   })
@@ -226,7 +227,7 @@ function viewAllemployeesbyRole() {
    ORDER BY r.role_title`, 
     function(err, res) {
       if (err) throw err
-      console.log("View All Employees By Role Completed");
+      console.log("View All Employees By Role".green);
       printTable(res);
       
   })
@@ -243,7 +244,7 @@ function viewAllemployeesbyManager() {
    ORDER BY e.manager_id`, 
     function(err, res) {
       if (err) throw err
-      console.log("View All Employees By Manager Completed");
+      console.log("View All Employees By Manager".green);
       printTable(res);
       
   })
@@ -267,7 +268,7 @@ function addDepartment() {
             },
             function(err) {
                 if (err) throw err
-                console.log("A New Department Has Been Added")
+                console.log("A New Department Added".red)
                 viewAlldepartments();
                 
             }
@@ -276,89 +277,82 @@ function addDepartment() {
   }
 
 // Add Role Function-----------------------------------------------------------------
-function addRole() { 
-    connection.query("SELECT * FROM departments JOIN roles ON roles.role_department_id = departments.department_id", 
-    function(err, res) {
-      inquirer.prompt([
-        {
-            name: "DepartmentID",
-            type: "list",
-            message: "What is the DepartmentID is the Role in?",
-            choices: deptArr
-            
-          },  
-        {
-            name: "Title",
-            type: "input",
-            message: "What is the Title for this Role?"
-          },
-          {
-            name: "Salary",
-            type: "input",
-            message: "What is the Salary for this Role?",
-            default: "0.00"
-  
-          } 
-      ]).then(function(res) {
-            
-        }
-      )}
-    )}
-
-
-       
+      function addRole() {
+        //pull department list for new role assignment 
+        connection.query("SELECT * from departments", function (req, res) {
+            inquirer
+                .prompt([{
+                    message: "Enter new role name: ",
+                    type: "input",
+                    name: "newRole"
+                },
+                {
+                    message: "Enter salary for new role: ",
+                    type: "input",
+                    name: "newSalary"
+                },
+                {
+                    message: "Assign department: ",
+                    type: "list",
+                    choices: res.map(depList => ({ name: depList.department_name, value: depList.department_id })),
+                    name: "roleDepartment"
+                }
+    
+                ]).then(function (response) {
+                    connection.query(`INSERT INTO roles (role_title, role_salary, role_department_id) 
+                    VALUES ('${response.newRole}', '${response.newSalary}','${response.roleDepartment}')`,
+                     function (err, res) {
+                        if (err) throw err;
+                        console.log(`New Role Add Complete`.red);
+                        viewAllroles();
+                    });
+                });
+        });
+    
+    };     
 // Add Employee Function-----------------------------------------------------------------
 function addEmployee() { 
-    connection.query(`SELECT e.first_name, e.last_name, r.role_title,
-    CONCAT(mgr.first_name, ' ',mgr.last_name) AS Manager FROM employees AS e 
-   JOIN roles AS r ON e.employee_role_id = r.roles_id
-   LEFT JOIN employees AS mgr ON e.manager_id = mgr.employee_id`, 
-    function(err, res) {
-      inquirer.prompt([
-        {
-            name: "EmployeeFirst",
-            type: "input",
-            message: "What is the Employees First Name?"
+    //pull managers to assign new employee manager
+    connection.query(`SELECT CONCAT(first_name, " " ,last_name) AS Manager, employee_id FROM employees`, function (err, res) {
+        //pull roles to assign new employee a role
+        connection.query("SELECT role_title, roles_id FROM roles", function (err, roleList) {
+            inquirer.prompt([{
+                message: "Enter new employee's first name: ",
+                type: "input",
+                name: "first_name"
+            },
+            {
+                message: "Enter new employee's last name: ",
+                type: "input",
+                name: "last_name"
+            },
+            {
+                message: "Select role for new employee: ",
+                type: "list",
+                choices: roleList.map(currentRoles => ({ name: currentRoles.role_title, value: currentRoles.roles_id })),
+                name: "newRole"
 
-          },  
-        {
-            name: "EmployeeLast",
-            type: "input",
-            message: "What is the Employees Last Name?"
-          },
-          {
-            name: "EmployeeRole",
-            type: "input",
-            message: "What is the RoleID for this employee?"
-            // update to include choices
-  
-          },
-          {
-            name: "Manager",
-            type: "input",
-            message: "What is the EmployeeID for this employee's manager?"
-            //update to include choices
-          } 
-      ]).then(function(res) {
-        console.log(res.Title,res.Salary,res.DepartmentID)  
-        connection.query(
-              "INSERT INTO employees SET ?",
-              {
-                first_name: res.EmployeeFirst,
-                last_name: res.EmployeeLast,
-                employee_role_id: res.EmployeeRole,
-                manager_id: res.Manager
-              },
-              function(err) {
-                  if (err) throw err
-                  viewAllemployees();
-                  console.log("function completed")
-              }
-          )
-  
-      });
+            },
+            {
+                message: "Assign manager: ",
+                type: "list",
+                choices: res.map(managers => ({ name: managers.Manager, value: managers.employee_id})),
+                name: "newManager"
+            }
+
+            ]).then(function (response) {
+                connection.query(`INSERT INTO employees(first_name, last_name, employee_role_id, manager_id) 
+                VALUES ('${response.first_name}','${response.last_name}','${response.newRole}','${response.newManager}')`,
+                 function (err, res) {
+                    if (err) throw err;
+                    console.log(`New Employee Added`.red);
+                    viewAllemployeesbyRole();
+                });
+            });
+        });
     });
-    }
+
+};
 
 // Update Functions ********************************************************    
 
@@ -492,6 +486,5 @@ connection.query("SELECT SUM(role_salary), role_department_id FROM roles GROUP B
       console.log("Salary totals complete")
 })};
 
-
-
+      
 start();
