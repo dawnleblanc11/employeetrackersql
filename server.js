@@ -2,14 +2,14 @@
 const mysql = require("mysql2");
 const express = require('express');
 const inquirer = require("inquirer");
+// allows for multiple layered questioning
 const TreePrompt = require('inquirer-tree-prompt');
-//const DB = require('./db/crud');
 inquirer.registerPrompt('tree', TreePrompt);
-//const apiRoutes = require('./routes/apiRoutes');
+// sets up connection to database
 const connection = require('./db/connections');
-
+// needed to use PrintTable since other function did not work
 const { printTable } = require('console-table-printer');
-//const { restoreDefaultPrompts } = require('inquirer');
+const { response } = require("express");
 
 
 // Start with what they would like to do
@@ -106,9 +106,8 @@ function start() {
         case "Calulate utilized budget by department": 
              calculateBudget();
         break;
-        case "Completed all Tasks": 
-             exit;
-        break;     
+        case "Exit: Completed all Tasks": 
+        return connection.end();     
 
         }
     })
@@ -135,7 +134,7 @@ function viewAllroles() {
   })
 }
 // View All Employees Function -------------------------------------
-// see if you can sort tables by alpha in sql
+// sorted by employee last name
 function viewAllemployees() {
     connection.query(`SELECT e.first_name, e.last_name, r.role_title,
     CONCAT(mgr.first_name, ' ',mgr.last_name) AS Manager FROM employees AS e 
@@ -297,5 +296,129 @@ function addEmployee() {
     }
 
 // Update Functions ********************************************************    
+
+// Update Employee Role ----------------------------------------------------------
+const rolesArr = [];
+    connection.query("SELECT role_title FROM roles", function (err, res){
+        if (err) throw err;
+        for (i=0; i<res.length; i++){
+    rolesArr.push(res[i].role_title)
+}});
+
+function updateEmployeeRole() {
+// creates the list of employees to choose from
+    const employeeArr = [];
+    connection.query("SELECT CONCAT(employees.first_name, ' ' ,employees.last_name) AS Name FROM employees",
+     function (err, res) {
+      if (err) throw err;
+      for (i=0; i < res.length; i++) {
+        employeeArr.push(res[i].Name);
+      }
+  
+      inquirer.prompt([
+        {
+          type: "list",
+          name: "updateEmployee",
+          message: "Which employee's role would you like to update?",
+          choices: employeeArr
+        },
+        {
+          type: "list",
+          name: "roleType",
+          message: "What role will this employee have?",
+          choices: rolesArr
+        }
+      ]).then(response => {
+// identifies the role id from the role selected
+        roleTypeID= "";
+        connection.query("SELECT roles_id FROM roles WHERE role_title =?",
+        [response.roleType],
+        function (err, res) {
+            if (err) throw err;
+            for (i=0; i < res.length; i++) {
+              roleTypeID=res[i].roles_id;
+            }             
+// updates the db with role id and employee id
+            connection.query(
+              `UPDATE employees SET employee_role_id = ? WHERE employee_id = (SELECT employee_id 
+                FROM(SELECT employee_id FROM employees WHERE CONCAT(first_name," ",last_name) = ?)AS Name)`,
+              [roleTypeID, response.updateEmployee],
+              function (err) {
+                if (err) throw err;
+                viewAllemployeesbyRole()
+              });
+          });
+        });    
+      })
+  };
+  // Update Employee Manager ----------------------------------------------------------
+
+function updateEmployeemanager() {
+
+    // creates the list of employees to choose from
+const employeeArr = [];
+connection.query("SELECT CONCAT(employees.first_name, ' ' ,employees.last_name) AS Name FROM employees ",
+ function (err, res) {
+  if (err) throw err;
+  for (i=0; i < res.length; i++) {
+    employeeArr.push(res[i].Name);
+  }
+ 
+
+  // creates a list of managers to choose from 
+const mgrArr = [];
+connection.query("SELECT CONCAT(employees.first_name, ' ' ,employees.last_name) AS MName FROM employees WHERE manager_id IS NULL",
+function (err, res) {
+    if (err) throw err;
+    for (i=0; i < res.length; i++) {
+      mgrArr.push(res[i].MName);
+    }
+
+// prompts user for choices
+  inquirer.prompt([
+    {
+        type: "list",
+        name: "updateEmployee",
+        message: "Which employee's manager would you like to update?",
+        choices: employeeArr
+      },
+    {
+        type: "list",
+        name: "updateManager",
+        message: "Which Manager would you like to choose?",
+        choices: mgrArr
+      }
+ 
+ ]).then(response => {
+// identifies the manager id from the manager selected
+// PROBLEM- CANT GET EMPLOYEE ID INTO FIELD
+    var updateManagersplit= []; 
+    const updateManagerID="";
+    updateManagersplit= response.updateManager.split(' '),
+    connection.query(`SELECT employees.employee_id FROM employees WHERE (employees.first_name = ? AND employees.last_name = ?)`,
+    [updateManagersplit[0],updateManagersplit[1]],
+    function (err, res2) {
+     if (err) throw err;
+          console.log(res2.employee_id)
+          updateManagerID = res2.employee_id;
+     },         
+// updates the db with role id and employee id
+    connection.query(
+          `UPDATE employees SET manager_id = ? WHERE employee_id = (SELECT employee_id 
+            FROM(SELECT employee_id FROM employees WHERE CONCAT(first_name," ",last_name) = ?)AS Name)`,
+          [updateManagerID, response.updateEmployee],
+          function (err) {
+            if (err) throw err;
+            viewAllemployeesbyManager()
+        }
+        )
+ )
+    })
+});
+});
+};
+
+ 
+
 
 start();
