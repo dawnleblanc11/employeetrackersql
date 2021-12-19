@@ -70,7 +70,7 @@ function start() {
                 value: "Perform Calculations",
                 open: true,
                 children: [
-                    "Calulate utilized budget by department"
+                    "Calculate utilized budget by department"
                 ]
             },
             
@@ -112,7 +112,7 @@ function start() {
         case "Update an employee manager": 
              updateEmployeemanager();
         break;
-        case "Calulate utilized budget by department": 
+        case "Calculate utilized budget by department": 
              calculateBudget();
         break;
         case "Exit: Completed all Tasks": 
@@ -399,6 +399,7 @@ function updateEmployeeRole() {
               [roleTypeID, response.updateEmployee],
               function (err) {
                 if (err) throw err;
+                console.log(`Employees Role has been updated`.red);
                 viewAllemployeesbyRole()
               });
           });
@@ -475,13 +476,16 @@ function (err, res) {
  // Calculate Combined Salaries of all employees in that department ----------------------------------------------------------
 
 function calculateBudget() {
-
     // creates a total of salaries by role
-    // fix to total by employees in departments
-const employeeArr = [];
-connection.query("SELECT SUM(role_salary), role_department_id FROM roles GROUP BY role_department_id",
+connection.query(`SELECT d.department_name AS Departments,
+ SUM(r.role_salary) AS Salaries FROM employees AS e 
+JOIN roles AS r ON e.employee_role_id = r.roles_id
+JOIN departments as d on r.role_department_id = d. department_id
+GROUP BY d.department_name
+ORDER BY d.department_name`,
  function (err, ressal) {
   if (err) throw err;
+  console.log(`Salary Totals by Department Complete`.red)
   printTable(ressal);
       console.log("Salary totals complete")
 })};
