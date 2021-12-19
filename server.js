@@ -59,11 +59,11 @@ function start() {
                 ]
             },
             {
-            value: "Update information",
+            value: "Delete information",
                 open: true,
                 children: [
-                    "Update an employee role",
-                    "Update an employee manager"
+                    "Delete an employee role",
+                    "Delete an employee"
                 ]
             },
             {
@@ -111,6 +111,15 @@ function start() {
         break;
         case "Update an employee manager": 
              updateEmployeemanager();
+        break;
+        case "Update an employee manager": 
+             updateEmployeemanager();
+        break;
+        case "Delete an employee role":
+             deleteaRole();
+        break;
+        case "Delete an employee":
+             deleteanEmployee();
         break;
         case "Calculate utilized budget by department": 
              calculateBudget();
@@ -473,8 +482,63 @@ function (err, res) {
 });
 };
 
- // Calculate Combined Salaries of all employees in that department ----------------------------------------------------------
+// DELETE Functions *****************************************
+// Delete a Role -----------------------------------------------
 
+function deleteaRole() {
+        connection.query("SELECT role_title, roles_id ORDER BY role_id", 
+        function (err,roleList) {
+            inquirer
+                .prompt([
+                {
+                    message: "Select Role to Delete ",
+                    type: "list",
+                    choices: roleList.map(roleChoice => ({ name: roleChoice.role_title, value: roleChoice.roles_id })),
+                    name: "rollID"
+                }
+    
+                ]).then(function (response) {
+                    connection.query(`DELETE FROM roles WHERE id = ?", [roles_id]) 
+                    VALUES ('${response.rollID}')`,
+                     function (err, res) {
+                        if (err) throw err;
+                        console.log(`Roles Deleted`.red);
+                        viewAllRoles();
+                    });
+                });
+        });
+    
+    };     
+    
+
+// Delete an Employee -----------------------------------------
+function deleteanEmployee() {
+    connection.query("SELECT first_name, last_name, employee_id from employees ORDER BY employee_id", 
+    function (err, empList) {
+        inquirer
+            .prompt([
+            {
+                message: "Select Employee to Delete ",
+                type: "list",
+                choices: empList.map(empChoice => ({ name: empChoice.first_name, value: empChoice.employee_id })),
+                name: "EmployeeID"
+            }
+
+            ]).then(function (response) {
+                connection.query(`DELETE FROM employee WHERE id = ?", [employeeID]) 
+                VALUES ('${response.EmployeeID}')`,
+                 function (err, res) {
+                    if (err) throw err;
+                    console.log(`Employee Deleted`.red);
+                    viewAllemployees();
+                });
+            });
+    });
+
+};     
+
+
+ // Calculate Combined Salaries of all employees in that department ----------------------------------------------------------
 function calculateBudget() {
     // creates a total of salaries by role
 connection.query(`SELECT d.department_name AS Departments,
